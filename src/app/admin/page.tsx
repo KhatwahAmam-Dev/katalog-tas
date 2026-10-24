@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
-import { Plus, Trash2, Edit, ShoppingBag, ArrowLeft, Image as ImageIcon } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Plus, Trash2, ShoppingBag, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
 interface Product {
@@ -17,6 +18,16 @@ interface Product {
 }
 
 export default function AdminDashboard() {
+  const router = useRouter();
+
+  // PROTEKSI LOGIN: Cek apakah user sudah login atau belum
+  useEffect(() => {
+    const isAuth = localStorage.getItem("is_admin");
+    if (!isAuth) {
+      router.push("/admin/login");
+    }
+  }, [router]);
+
   const [products, setProducts] = useState<Product[]>([
     {
       id: "1",
@@ -80,6 +91,11 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem("is_admin");
+    router.push("/admin/login");
+  };
+
   return (
     <div className="min-h-screen bg-slate-100 text-slate-800 pb-12">
       {/* Top Navbar Admin */}
@@ -95,12 +111,20 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-xs font-medium bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded-lg border border-slate-700 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" /> Lihat Web Utama
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 text-xs font-medium bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded-lg border border-slate-700 transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" /> Lihat Web Utama
+            </Link>
+            <button
+              onClick={handleLogout}
+              className="text-xs font-semibold bg-red-600/20 text-red-400 hover:bg-red-600 hover:text-white px-3 py-2 rounded-lg border border-red-500/30 transition-all"
+            >
+              Logout
+            </button>
+          </div>
         </div>
       </header>
 
