@@ -20,27 +20,7 @@ interface Product {
 export default function AdminDashboard() {
   const router = useRouter();
 
-  // PROTEKSI LOGIN: Cek apakah user sudah login atau belum
-  useEffect(() => {
-    const isAuth = localStorage.getItem("is_admin");
-    if (!isAuth) {
-      router.push("/admin/login");
-    }
-  }, [router]);
-
-  const [products, setProducts] = useState<Product[]>([
-    {
-      id: "1",
-      title: "Tas Selempang Wanita Premium Leather - Elegant Black",
-      category: "Sling Bag",
-      price: "Rp 129.000",
-      description: "Tas selempang elegan berbahan kulit sintetis grade A.",
-      imageUrl: "https://images.unsplash.com/photo-1584917865442-de89df76afd3?q=80&w=800&auto=format&fit=crop",
-      shopeeUrl: "https://shopee.co.id",
-      tiktokUrl: "https://tiktok.com",
-      badge: "BEST SELLER",
-    },
-  ]);
+  const [products, setProducts] = useState<Product[]>([]);
 
   // Form State
   const [title, setTitle] = useState("");
@@ -52,14 +32,33 @@ export default function AdminDashboard() {
   const [tiktokUrl, setTiktokUrl] = useState("");
   const [badge, setBadge] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // PROTEKSI LOGIN & AMBIL DATA DARI CLOUD API
+  useEffect(() => {
+    const isAuth = localStorage.getItem("is_admin");
+    if (!isAuth) {
+      router.push("/admin/login");
+      return;
+    }
+
+    fetch("/api/products")
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setProducts(data);
+        }
+      })
+      .catch((err) => console.error("Gagal memuat produk:", err));
+  }, [router]);
+
+  // SIMPAN PRODUK BARU KE CLOUD VIA API
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !price || !imageUrl) {
       alert("Mohon isi Nama Tas, Harga, dan URL Foto!");
       return;
     }
 
-    const newProduct: Product = {
+    const newProduct = {
       id: Date.now().toString(),
       title,
       category,
@@ -71,23 +70,51 @@ export default function AdminDashboard() {
       badge,
     };
 
-    setProducts([newProduct, ...products]);
+    try {
+      const res = await fetch("/api/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newProduct),
+      });
 
-    // Reset Form
-    setTitle("");
-    setPrice("");
-    setDescription("");
-    setImageUrl("");
-    setShopeeUrl("");
-    setTiktokUrl("");
-    setBadge("");
-
-    alert("Produk tas baru berhasil ditambahkan!");
+      if (res.ok) {
+        const data = await res.json();
+        setProducts(data.products);
+        
+        // Reset Form
+        setTitle("");
+        setPrice("");
+        setDescription("");
+        setImageUrl("");
+        setShopeeUrl("");
+        setTiktokUrl("");
+        setBadge("");
+        
+        alert("Produk tas berhasil diunggah ke Cloud & Live untuk semua pembeli!");
+      }
+    } catch (err) {
+      console.error("Gagal menyimpan:", err);
+      alert("Terjadi kesalahan saat menyimpan produk.");
+    }
   };
 
-  const handleDelete = (id: string) => {
+  // HAPUS PRODUK DARI CLOUD VIA API
+  const handleDelete = async (id: string) => {
     if (confirm("Yakin mau menghapus produk tas ini?")) {
-      setProducts(products.filter((p) => p.id !== id));
+      try {
+        const res = await fetch("/api/products", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id }),
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          setProducts(data.products);
+        }
+      } catch (err) {
+        console.error("Gagal menghapus:", err);
+      }
     }
   };
 
@@ -166,7 +193,7 @@ export default function AdminDashboard() {
                 <label className="block font-semibold text-slate-700 mb-1">Harga (Rp) *</label>
                 <input
                   type="text"
-                  placeholder="Rp 120.000"
+                  placeholder="Mulai Rp 120.000"
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
                   className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-amber-500"
