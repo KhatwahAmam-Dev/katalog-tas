@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Search, ShoppingBag, ExternalLink, X, Sparkles, MessageCircle } from "lucide-react";
 
 // Types untuk data produk
@@ -16,7 +16,7 @@ interface Product {
   badge?: string;
 }
 
-// Dummy Data Awal untuk Contoh Tampilan
+// Dummy Data Awal
 const DUMMY_PRODUCTS: Product[] = [
   {
     id: "1",
@@ -66,12 +66,32 @@ const DUMMY_PRODUCTS: Product[] = [
 const CATEGORIES = ["Semua", "Sling Bag", "Shoulder Bag", "Tote Bag", "Backpack"];
 
 export default function Home() {
+  const [products, setProducts] = useState<Product[]>(DUMMY_PRODUCTS);
   const [selectedCategory, setSelectedCategory] = useState("Semua");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
+  // Ambil data produk terbaru langsung dari server cloud saat halaman dibuka
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const res = await fetch("/api/products");
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.length > 0) {
+            setProducts(data);
+          }
+        }
+      } catch (err) {
+        console.error("Gagal mengambil data produk cloud:", err);
+      }
+    };
+
+    fetchProducts();
+  }, []);
+
   // Filter logika pencarian & kategori
-  const filteredProducts = DUMMY_PRODUCTS.filter((product) => {
+  const filteredProducts = products.filter((product) => {
     const matchesCategory =
       selectedCategory === "Semua" || product.category === selectedCategory;
     const matchesSearch = product.title
